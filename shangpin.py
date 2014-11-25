@@ -9,52 +9,70 @@ import gevent
 from gevent import monkey
 monkey.patch_all()
 
+
+
 root = 'taobaoDB'
-category = ['cup','shoe','cloth','bike','keyboard']
-rootURL = ['http://s.taobao.com/search?initiative_id=staobaoz_20141024&js=1&stats_click=search_radio_all%253A1&q=%B1%AD&tab=all&bcoffset=-4&s=',
-        'http://s.taobao.com/search?initiative_id=staobaoz_20141024&js=1&stats_click=search_radio_all%253A1&q=%D0%AC&tab=all&bcoffset=-4&s=',
-        'http://s.taobao.com/search?initiative_id=staobaoz_20141024&js=1&stats_click=search_radio_all%253A1&q=%D2%C2&tab=all&bcoffset=-4&s=',
-        'http://s.taobao.com/search?initiative_id=staobaoz_20141024&js=1&stats_click=search_radio_all%253A1&q=%D7%D4%D0%D0%B3%B5&tab=all&bcoffset=-4&s=',
-        'http://s.taobao.com/search?initiative_id=staobaoz_20141024&js=1&stats_click=search_radio_all%253A1&q=%BC%FC%C5%CC&tab=all&bcoffset=-4&s=']
+#category = ['cup','shoe','cloth','bike','keyboard']
+#rootURL = ['http://s.taobao.com/search?initiative_id=staobaoz_20141024&js=1&stats_click=search_radio_all%253A1&q=%B1%AD&tab=all&bcoffset=-4&s=',
+#        'http://s.taobao.com/search?initiative_id=staobaoz_20141024&js=1&stats_click=search_radio_all%253A1&q=%D0%AC&tab=all&bcoffset=-4&s=',
+#        'http://s.taobao.com/search?initiative_id=staobaoz_20141024&js=1&stats_click=search_radio_all%253A1&q=%D2%C2&tab=all&bcoffset=-4&s=',
+#        'http://s.taobao.com/search?initiative_id=staobaoz_20141024&js=1&stats_click=search_radio_all%253A1&q=%D7%D4%D0%D0%B3%B5&tab=all&bcoffset=-4&s=',
+#        'http://s.taobao.com/search?initiative_id=staobaoz_20141024&js=1&stats_click=search_radio_all%253A1&q=%BC%FC%C5%CC&tab=all&bcoffset=-4&s=']
         
+        
+category = ['cup','shoe','cloth']
+rootURL = [
+'http://s.taobao.com/search?q=%B1%AD&commend=all&ssid=s5-e&search_type=item&sourceId=tb.index&spm=1.7274553.1997520841.1&initiative_id=tbindexz_20141125&tab=all&bcoffset=-4&s=',
+'http://s.taobao.com/search?q=%D0%AC&js=1&stats_click=search_radio_all%253A1&initiative_id=staobaoz_20141125&tab=all&bcoffset=-4&s=',
+'http://s.taobao.com/search?q=%D2%C2%B7%FE&js=1&stats_click=search_radio_all%253A1&initiative_id=staobaoz_20141125&tab=all&bcoffset=-4&s=']
 
 
-def Crawler(rooturl):
+
+
+TOTAL_COUNT = 100
+
+
+def Crawler(rooturl, i):
     urls = set([])
     
-    for page in range(0,1100,44):
-        if len(urls) > 1000:
+    for page in range(0,int(TOTAL_COUNT*1.2),44):
+        if len(urls) > TOTAL_COUNT:
             break
             
         url = rooturl+str(page)
+        print 'get search result:',url
+        data = ''
         for t in range(3):
             try:
-                data = urllib2.urlopen(url).read()
+                data = urllib2.urlopen(url, timeout=15).read()
                 if len(data)>0:
                     break
             except Exception,e:
-                print e
+                print e,url
                 
         if len(data)>0:
-            links = re.findall('http://item.taobao.com[^"]+',data)
-            links = links + re.findall('http://detail.tmall.com[^"]+',data)
+            links = re.findall('"nid":"(\d+)"',data)
+            #links = re.findall('http://item.taobao.com[^"]+',data)
+            #links = links + re.findall('http://detail.tmall.com[^"]+',data)
             links = set(links)
             
             for link in links:
-                urls.add(link)
+                urls.add('http://item.taobao.com/item.htm?id='+link)
         else:
             print 'Crawler:',rooturl,page,'skipped'
             
     print 'got',len(urls),'links in category',category[i]
+    print urls,'\n\n\n'
     return urls
     
     
     
-def GetPic(url, path):
+    
+def GetPic(url, path, index):
     data = ''
     for i in range(3):
         try:
-            data = urllib2.urlopen(url).read()
+            data = urllib2.urlopen(url, timeout = 10).read()
             if len(data) >= 0:
                 break
         except Exception,e:
@@ -63,6 +81,7 @@ def GetPic(url, path):
             print 'url:',url
         
 
+    '''
     title = data[data.find('<title>')+len('<title>'):data.find('</title>')]
     
     f = open(os.path.join(path,'info.txt'), 'w')
@@ -71,6 +90,7 @@ def GetPic(url, path):
     f.write('\nurl:\n')
     f.write(url.decode('gbk'))
     f.close()
+    '''
 
     imgList = re.findall('"([^"]+.jpg)[^"]+.jpg', data)
     imgList = set(imgList)
@@ -81,8 +101,9 @@ def GetPic(url, path):
         name = ''
         if img.find('background') >= 0:
             get = re.findall('(http://[^"]+.jpg)',img)[0]
-            name = os.path.join(path,'img_'+str(count)+'.jpg')
+            name = os.path.join(path,'img_'+str(index)+'_'+str(count)+'.jpg')
         else:
+            continue
             get = re.findall('(http://[^"]+.jpg)',img)[0]
             name = os.path.join(path,'extra_'+str(count)+'.jpg')
                 
@@ -94,13 +115,16 @@ def GetPic(url, path):
                 if len(imgdata) > 0:
                     break
             except Exception,e:
-                print e
+                print e,url
                 
         if len(imgdata) > 0:
             f = open(name, 'wb')
             f.write(imgdata)
             f.close
             count = count + 1
+            if count > 10000:
+                print name,'done'
+                return
         else:
             print get,'skipped'
             continue
@@ -113,6 +137,8 @@ def GetPic(url, path):
 
 def Drive(pid):
     i = pid
+    
+    
     path = os.path.join(root,category[i])
     if os.path.exists(path) == False:
         os.mkdir(path)
@@ -120,7 +146,7 @@ def Drive(pid):
     urlList = [] 
     listpath = os.path.join(root,category[i],'list')
     if os.path.exists(listpath) == False:
-        urlList = Crawler(rootURL[i])
+        urlList = Crawler(rootURL[i], i)
         f = open(listpath,'w')
         for url in urlList:
             f.write(url+'\n')
@@ -144,10 +170,10 @@ def Drive(pid):
         f.close()
             
     for url in urlList:
-        path = os.path.join(root,category[i], str(index))
-        if os.path.exists(path) == False:
-            os.mkdir(path)
-        GetPic(url,path)
+        path = os.path.join(root,category[i])#, str(index))
+        #if os.path.exists(path) == False:
+        #    os.mkdir(path)
+        GetPic(url.strip(),path,index)
         index = index + 1
         print index,'in',category[i],'done'
         
