@@ -96,8 +96,8 @@ with open('userinfo') as f:
          password = f.readline().strip()
 
          url = "http://www.cc98.org/dispbbs.asp?boardID=509&ID=4222721&page=1"
-         cc = cc98(name, password)
-         cc.login()  # log in first
+         #cc = cc98(name, password)
+         #cc.login()  # log in first
          # get total post number to calculate floor number
          data = urllib2.urlopen(url).read().decode('utf-8')
          reres = re.search(r'本主题贴数\s*<b>(\d+)</b>'.decode('utf-8'), data)
